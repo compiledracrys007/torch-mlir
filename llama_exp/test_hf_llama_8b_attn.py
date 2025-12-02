@@ -19,6 +19,15 @@ model = AutoModelForCausalLM.from_pretrained(
     token=os.getenv("HF_TOKEN", None)
 )
 
+# ----------------------------------------------------------------
+# 🔥 Force attention scale = 1.0 for all layers
+# ----------------------------------------------------------------
+for layer in model.model.layers:
+    if hasattr(layer.self_attn, "scaling"):
+        layer.self_attn.scaling = 1.0
+    if hasattr(layer.self_attn, "softmax_scale"):
+        layer.self_attn.softmax_scale = 1.0
+
 # Choose which layer to extract
 LAYER_INDEX = 0   # first layer
 
@@ -52,7 +61,7 @@ class Llama3AttentionForExport(torch.nn.Module):
                cos=cos,    # required by eager_attention_forward
                sin=sin,    # required by eager_attention_forward
             )
-        return out
+        return out[0]
 
 wrapped = Llama3AttentionForExport(attention_layer)
 
