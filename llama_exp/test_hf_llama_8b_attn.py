@@ -88,6 +88,21 @@ exported = fx.export_and_import(wrapped, (hidden_states), enable_ir_printing=Tru
 mlir_asm = exported.operation.get_asm(enable_debug_info=True)
 print(mlir_asm)
 
+run_pipeline_with_repro_report(
+            exported,
+            "builtin.module(func.func(linalg-generalize-named-ops, linalg-fuse-elementwise-ops), " \
+            "convert-shape-to-std, sparse-assembler{direct-out}, sparsification-and-bufferization, sparse-storage-specifier-to-llvm, " \
+            "func.func(expand-realloc, refback-generalize-tensor-pad, refback-generalize-tensor-concat, tm-tensor-bufferize), " \
+            "one-shot-bufferize{copy-before-write bufferize-function-boundaries function-boundary-type-conversion=identity-layout-map}, refback-mlprogram-bufferize," \
+            "func.func(buffer-deallocation-pipeline)," \
+            "inline,  refback-munge-calling-conventions," \
+            "func.func(tm-tensor-to-loops, refback-munge-memref-copy, convert-linalg-to-loops, lower-affine)," \
+            "convert-scf-to-cf)",
+            "Lowering torch TM to scf", True,
+        )
+mlir_asm2 = exported.operation.get_asm(enable_debug_info=True)
+print(mlir_asm2)
+
 
 
 # run_pipeline_with_repro_report(
