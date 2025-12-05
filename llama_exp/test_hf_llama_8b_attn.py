@@ -3,6 +3,7 @@ from torch_mlir import fx
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from torch_mlir.compiler_utils import run_pipeline_with_repro_report, lower_mlir_module, OutputType
 import os
+from compiler_tools import cpu_runner as ct
 
 # -----------------------------------------------------
 # 1. Load Model: LLaMA-3 8B (official Meta model)
@@ -74,39 +75,5 @@ batch = 1
 
 hidden_states = torch.randn(batch, seq_len, hidden_dim, dtype=torch.float16)
 
-head_dim  = attention_layer.head_dim      # hidden_size // num_heads
-
-cos = torch.ones(batch, seq_len, head_dim, dtype=torch.float16)
-sin = torch.zeros(batch, seq_len, head_dim, dtype=torch.float16)
-
-# ------------------------------------------------------------
-# 6. FX Export: returns a *Functional GraphModule*
-#    Equivalent to torch.export.export(model, inputs)
-# ------------------------------------------------------------
-exported = fx.export_and_import(wrapped, (hidden_states), enable_ir_printing=True, 
-                                output_type=OutputType.LINALG_ON_TENSORS)
-mlir_asm = exported.operation.get_asm(enable_debug_info=True)
-print(mlir_asm)
-
-run_pipeline_with_repro_report(
-            exported,
-            "builtin.module(func.func(linalg-generalize-named-ops, linalg-fuse-elementwise-ops), " \
-            "convert-shape-to-std, sparse-assembler{direct-out}, sparsification-and-bufferization, sparse-storage-specifier-to-llvm, " \
-            "func.func(expand-realloc, refback-generalize-tensor-pad, refback-generalize-tensor-concat, tm-tensor-bufferize), " \
-            "one-shot-bufferize{copy-before-write bufferize-function-boundaries function-boundary-type-conversion=identity-layout-map}, refback-mlprogram-bufferize," \
-            "func.func(buffer-deallocation-pipeline)," \
-            "inline,  refback-munge-calling-conventions," \
-            "func.func(tm-tensor-to-loops, refback-munge-memref-copy, convert-linalg-to-loops, lower-affine)," \
-            "convert-scf-to-cf)",
-            "Lowering torch TM to scf", True,
-        )
-mlir_asm2 = exported.operation.get_asm(enable_debug_info=True)
-print(mlir_asm2)
-
-
-
-# run_pipeline_with_repro_report(
-#     mlir_asm,
-#     "builtin.module(torch-backend-to-stablehlo-backend-pipeline)",
-#     "Lowering Torch Backend IR -> StableHLO Backend IR",
-# )
+out = ct.compile_and_run(wrapped, (hidden_states))
+print(out)
