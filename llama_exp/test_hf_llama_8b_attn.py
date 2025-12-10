@@ -34,7 +34,6 @@ LAYER_INDEX = 0   # first layer
 
 attention_layer = model.model.layers[LAYER_INDEX].self_attn
 
-
 # -----------------------------------------------------
 # 2. Wrapper to simplify the forward() for export
 # -----------------------------------------------------
@@ -77,3 +76,7 @@ hidden_states = torch.randn(batch, seq_len, hidden_dim, dtype=torch.float16)
 
 out = ct.compile_and_run(wrapped, (hidden_states))
 print(out)
+
+ref_model = Llama3AttentionForExport(attention_layer)
+ref = ref_model(hidden_states)
+print(ref)

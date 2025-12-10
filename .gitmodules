@@ -1,8 +1,8 @@
 [submodule "externals/llvm-project"]
 	path = externals/llvm-project
 	url = git@github.com:compiledracrys007/llvm-project.git
-        branch = dev/dracarys_exp
+        branch = dev/main
 [submodule "externals/stablehlo"]
 	path = externals/stablehlo
 	url = git@github.com:compiledracrys007/stablehlo.git
-        branch = dev/dracarys_exp
+        branch = dev/main
